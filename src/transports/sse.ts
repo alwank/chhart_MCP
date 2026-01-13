@@ -116,7 +116,7 @@ export function createSSEServer(mcpServer: Server, port: number = 3000) {
         }
 
         try {
-            await transport.handlePostMessage(req, res);
+            await transport.handlePostMessage(req, res, req.body);
         } catch (error) {
             console.error('Error handling POST message:', error);
             res.status(500).json({ error: String(error) });
