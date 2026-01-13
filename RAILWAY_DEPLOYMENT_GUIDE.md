@@ -89,11 +89,11 @@ Expected response:
 }
 ```
 
-### 2. Test SSE Endpoint
+### 2. Test MCP Endpoint
 
-The SSE endpoint should be available at:
+The MCP endpoint should be available at:
 ```
-https://your-app.railway.app/sse
+https://your-app.railway.app/mcp
 ```
 
 ---
@@ -108,7 +108,7 @@ Update `claude_desktop_config.json`:
 {
   "mcpServers": {
     "chhart": {
-      "url": "https://your-app.railway.app/sse"
+      "url": "https://your-app.railway.app/mcp"
     }
   }
 }
@@ -118,7 +118,7 @@ Update `claude_desktop_config.json`:
 
 Provide the SSE endpoint URL:
 ```
-https://your-app.railway.app/sse
+https://your-app.railway.app/mcp
 ```
 
 ---
@@ -175,15 +175,14 @@ curl https://your-app.railway.app/health
 - Verify Dockerfile is correct
 - Ensure `PORT` env variable is set
 
-### SSE Connection Issues
+### Connection Issues
 
 **CORS errors:**
 - The server already has CORS enabled
 - Check browser console for specific errors
 
-**Connection timeout:**
-- Railway may take 30-60 seconds for cold starts
-- Try again after a minute
+**406 Not Acceptable:**
+- Ensure your client sends `Accept: application/json` and `Content-Type: application/json`.
 
 ---
 
@@ -263,7 +262,7 @@ railway up
 After deployment:
 
 1. ✅ Test the health endpoint
-2. ✅ Configure Claude Desktop with the SSE URL
+2. ✅ Configure Claude Desktop with the MCP URL (/mcp)
 3. ✅ Test creating a flowchart via Claude
 4. ✅ Verify the generated URL works on chhart.app
 5. 📊 Monitor usage and logs

@@ -4,7 +4,8 @@
  */
 
 import express, { Request, Response } from 'express';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createChhartMcpServer } from '../server-sse.js';
 
 export function createHTTPServer(port: number = 3000) {
@@ -15,7 +16,6 @@ export function createHTTPServer(port: number = 3000) {
         res.header('Access-Control-Allow-Origin', '*');
         res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
-        res.header('X-Accel-Buffering', 'no'); // Disable buffering for SSE
 
         if (req.method === 'OPTIONS') {
             res.sendStatus(200);
@@ -36,98 +36,38 @@ export function createHTTPServer(port: number = 3000) {
         });
     });
 
-    // Store active transports with readiness tracking
-    const transports = new Map<string, { transport: SSEServerTransport; ready: boolean }>();
+    // Create transport
+    const transport = new StreamableHTTPServerTransport();
+    const server = createChhartMcpServer();
 
-    // SSE Endpoint - Starts a new session
-    app.get('/sse', async (req: Request, res: Response) => {
-        console.log('New SSE connection initiated');
+    // Connect the MCP server to the transport
+    server.connect(transport);
 
-        // Ensure valid SSE headers (Fix 4: exact headers required by Antigravity)
-        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
-
-        const transport = new SSEServerTransport('/message', res);
-        const server = createChhartMcpServer();
-
-        // Register session immediately to handle race conditions (Fix 3: track readiness)
-        const sessionId = transport.sessionId;
-        if (sessionId) {
-            transports.set(sessionId, { transport, ready: false });
-            console.log(`Session created: ${sessionId}`);
-        }
-
-        let keepAliveInterval: NodeJS.Timeout;
-
-        req.on('close', () => {
-            console.log(`Session closed: ${sessionId}`);
-            clearInterval(keepAliveInterval);
-            if (sessionId) {
-                transports.delete(sessionId);
-            }
-            server.close();
-        });
-
-        await server.connect(transport);
-
-        // Mark session as ready after successful connection (Fix 3)
-        if (sessionId) {
-            const session = transports.get(sessionId);
-            if (session) {
-                session.ready = true;
-                console.log(`Session ready: ${sessionId}`);
+    // MCP endpoint - handles all MCP protocol messages
+    app.post('/mcp', async (req: Request, res: Response) => {
+        try {
+            await transport.handleRequest(req, res, req.body);
+        } catch (error) {
+            console.error('Error handling MCP request:', error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: 'Internal server error',
+                    message: error instanceof Error ? error.message : String(error)
+                });
             }
         }
-
-        // Keep-alive heartbeat every 15 seconds (Fix 1: send real events, not comments)
-        // Antigravity ignores comment-only keepalives and closes the stream
-        keepAliveInterval = setInterval(() => {
-            try {
-                res.write('event: ping\n');
-                res.write('data: {}\n\n');
-            } catch (error) {
-                console.error(`Heartbeat failed for ${sessionId}:`, error);
-                clearInterval(keepAliveInterval);
-            }
-        }, 15000);
-    });
-
-    // Message Endpoint - Receives JSON-RPC messages
-    app.post('/message', async (req: Request, res: Response) => {
-        const sessionId = req.query.sessionId as string;
-
-        if (!sessionId) {
-            res.status(400).send('Missing sessionId parameter');
-            return;
-        }
-
-        const session = transports.get(sessionId);
-        if (!session) {
-            res.status(404).send('Session not found');
-            return;
-        }
-
-        // Fix 3: Delay accepting /message until session is ready
-        if (!session.ready) {
-            res.status(409).json({ error: 'SSE session not ready yet' });
-            return;
-        }
-
-        await session.transport.handlePostMessage(req, res, req.body);
     });
 
     // Start server
-    const server = app.listen(port, () => {
-        console.error(`Chhart MCP Server (SSE) listening on port ${port}`);
+    const httpServer = app.listen(port, () => {
+        console.error(`Chhart MCP Server (Streamable HTTP) listening on port ${port}`);
         console.error(`Health check: http://localhost:${port}/health`);
-        console.error(`SSE endpoint: http://localhost:${port}/sse`);
+        console.error(`MCP endpoint: http://localhost:${port}/mcp`);
     });
 
-    // Increase timeouts to prevent premature connection closure
-    server.headersTimeout = 65000;
-    server.keepAliveTimeout = 61000;
+    // Increase timeouts
+    httpServer.headersTimeout = 65000;
+    httpServer.keepAliveTimeout = 61000;
 
     return app;
 }

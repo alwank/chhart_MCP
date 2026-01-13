@@ -47,7 +47,7 @@ For remote access via SSE (after deploying to Railway):
 {
   "mcpServers": {
     "chhart": {
-      "url": "https://your-app.railway.app/sse"
+      "url": "https://your-app.railway.app/mcp"
     }
   }
 }
