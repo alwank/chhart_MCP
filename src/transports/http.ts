@@ -4,11 +4,10 @@
  */
 
 import express, { Request, Response } from 'express';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { randomUUID } from 'crypto';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { createChhartMcpServer } from '../server-sse.js';
 
-export function createHTTPServer(mcpServer: Server, port: number = 3000) {
+export function createHTTPServer(port: number = 3000) {
     const app = express();
 
     // Enable CORS for cross-origin requests
@@ -36,38 +35,62 @@ export function createHTTPServer(mcpServer: Server, port: number = 3000) {
         });
     });
 
-    // Create transport with session management
-    const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-    });
+    // Store active transports
+    const transports = new Map<string, SSEServerTransport>();
 
-    // Connect the MCP server to the transport
-    mcpServer.connect(transport);
+    // SSE Endpoint - Starts a new session
+    app.get('/sse', async (req: Request, res: Response) => {
+        console.log('New SSE connection initiated');
 
-    // MCP endpoint - handles all MCP protocol messages
-    app.post('/mcp', async (req: Request, res: Response) => {
-        try {
-            console.error('Received MCP request:', {
-                method: req.method,
-                headers: req.headers,
-                body: req.body
-            });
+        const transport = new SSEServerTransport('/message', res);
+        const server = createChhartMcpServer();
 
-            await transport.handleRequest(req, res, req.body);
-        } catch (error) {
-            console.error('Error handling MCP request:', error);
-            res.status(500).json({
-                error: 'Internal server error',
-                message: error instanceof Error ? error.message : String(error)
+        // Check internal API to get session ID if not public, 
+        // usually transport.sessionId is available after construction or start
+        // In the specific SDK version, we might need to rely on the transport sending the ID.
+        // But for routing POST messages, we need to know the ID server-side.
+        // SSEServerTransport usually generates one.
+
+        await server.connect(transport);
+
+        // Access sessionId - SDK implementation dependent, but usually public
+        const sessionId = transport.sessionId;
+
+        if (sessionId) {
+            transports.set(sessionId, transport);
+            console.log(`Session created: ${sessionId}`);
+
+            req.on('close', () => {
+                console.log(`Session closed: ${sessionId}`);
+                transports.delete(sessionId);
+                server.close();
             });
         }
     });
 
+    // Message Endpoint - Receives JSON-RPC messages
+    app.post('/message', async (req: Request, res: Response) => {
+        const sessionId = req.query.sessionId as string;
+
+        if (!sessionId) {
+            res.status(400).send('Missing sessionId parameter');
+            return;
+        }
+
+        const transport = transports.get(sessionId);
+        if (!transport) {
+            res.status(404).send('Session not found');
+            return;
+        }
+
+        await transport.handlePostMessage(req, res, req.body);
+    });
+
     // Start server
     app.listen(port, () => {
-        console.error(`Chhart MCP Server (Streamable HTTP) listening on port ${port}`);
+        console.error(`Chhart MCP Server (SSE) listening on port ${port}`);
         console.error(`Health check: http://localhost:${port}/health`);
-        console.error(`MCP endpoint: http://localhost:${port}/mcp`);
+        console.error(`SSE endpoint: http://localhost:${port}/sse`);
     });
 
     return app;
