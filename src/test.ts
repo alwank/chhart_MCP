@@ -36,13 +36,13 @@ console.log();
 
 // Test 3: Sankey URL Generation
 console.log('Test 3: Sankey URL Generation');
-const sankeyFlows = [
-    { source: 'Revenue', target: 'Costs', value: 40 },
-    { source: 'Revenue', target: 'Profit', value: 60 },
-    { source: 'Costs', target: 'Salaries', value: 25 },
-    { source: 'Costs', target: 'Operations', value: 15 }
-];
-const sankeyUrl = generateSankeyUrl(sankeyFlows, 'Budget Flow');
+const sankeyContent = `Revenue
+  [value=40] Costs
+  [value=60] Profit
+Costs
+  [value=25] Salaries
+  [value=15] Operations`;
+const sankeyUrl = generateSankeyUrl(sankeyContent, 'Budget Flow');
 console.log('Sankey URL:', sankeyUrl);
 console.log('URL includes encoded content:', sankeyUrl.includes('sankey=') ? '✅ PASS' : '❌ FAIL');
 console.log('URL includes title:', sankeyUrl.includes('title=') ? '✅ PASS' : '❌ FAIL');

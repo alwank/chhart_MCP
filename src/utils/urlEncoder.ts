@@ -36,32 +36,8 @@ export function generateFlowchartUrl(content: string, title?: string): string {
 /**
  * Generates a shareable URL for a Sankey diagram
  */
-export function generateSankeyUrl(
-    flows: Array<{ source: string; target: string; value: number }>,
-    title?: string
-): string {
-    // Group flows by source for proper indentation
-    const flowsBySource = new Map<string, Array<{ target: string; value: number }>>();
-
-    flows.forEach(f => {
-        if (!flowsBySource.has(f.source)) {
-            flowsBySource.set(f.source, []);
-        }
-        flowsBySource.get(f.source)!.push({ target: f.target, value: f.value });
-    });
-
-    // Convert flows to Chhart Sankey format with proper indentation
-    const sankeyLines: string[] = [];
-    flowsBySource.forEach((targets, source) => {
-        sankeyLines.push(source);
-        targets.forEach(t => {
-            sankeyLines.push(`  [value=${t.value}] ${t.target}`);
-        });
-    });
-
-    const sankeyContent = sankeyLines.join('\n');
-
-    const encoded = encodeChartData(sankeyContent);
+export function generateSankeyUrl(content: string, title?: string): string {
+    const encoded = encodeChartData(content);
     const baseUrl = 'https://chhart.app';
 
     let url = `${baseUrl}/#sankey=${encoded}`;
