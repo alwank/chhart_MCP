@@ -34,12 +34,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chhart/chhart-mcp-server.git"
+    "url": "https://github.com/alwank/chhart_MCP.git"
   },
   "bugs": {
-    "url": "https://github.com/chhart/chhart-mcp-server/issues"
+    "url": "https://github.com/alwank/chhart_MCP/issues"
   },
-  "homepage": "https://github.com/chhart/chhart-mcp-server#readme",
+  "homepage": "https://github.com/alwank/chhart_MCP#readme",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=9.0.0"

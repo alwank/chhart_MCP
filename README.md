@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/chhart-mcp.svg)](https://www.npmjs.com/package/chhart-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org/)
-[![MCP Badge](https://lobehub.com/badge/mcp/chhart-mcp)](https://lobehub.com/mcp/chhart-mcp)
 
 An MCP (Model Context Protocol) server that enables AI assistants like ChatGPT, Claude, and others to programmatically create flowcharts and Sankey diagrams on [chhart.app](https://chhart.app).
 
@@ -61,7 +60,7 @@ npx chhart-mcp
 
 ```bash
 # Clone the repository
-git clone https://github.com/chhart/chhart-mcp.git
+git clone https://github.com/alwank/chhart_MCP.git
 cd chhart-mcp
 
 # Install dependencies
@@ -323,4 +322,4 @@ Copyright (c) 2026 Chhart.app
 - [Model Context Protocol](https://modelcontextprotocol.io) - Learn about MCP
 - [Documentation](docs/) - Additional guides and examples
 - [Changelog](CHANGELOG.md) - Version history and updates
-- [Issues](https://github.com/chhart/chhart-mcp-server/issues) - Report bugs or request features
+- [Issues](https://github.com/alwank/chhart_MCP/issues) - Report bugs or request features
